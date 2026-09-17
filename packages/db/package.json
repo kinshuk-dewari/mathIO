@@ -1,5 +1,5 @@
 {
-  "name": "db",
+  "name": "@repo/db",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -7,6 +7,12 @@
     "@types/bun": "latest",
     "@types/pg": "^8.23.1",
     "prisma": "7.10.0"
+  },
+  "exports":{
+    "./client": "./index.ts"
+  },
+  "scripts": {
+    "generate":"bunx prisma generate"
   },
   "peerDependencies": {
     "typescript": "^7"
