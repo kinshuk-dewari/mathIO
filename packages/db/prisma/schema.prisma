@@ -8,26 +8,32 @@ datasource db {
 }
 
 model User {
-  id         String       @id @default(uuid())
-  email      String       @unique
+  id         String           @id @default(uuid())
+  email      String           @unique
   password   String
-  username   String       @unique
+  username   String           @unique
   rating     UserRating?
   gameMember GameMember[]
+  sender     Friends[]        @relation("sender")
+  reciever   Friends[]        @relation("reciever")
+  answers    QuestionAnswer[]
 }
 
 model Game {
-  id         String       @id @default(uuid())
+  id         String           @id @default(uuid())
   timelimit  Int
   startedAt  DateTime
   endAt      DateTime
   gameMember GameMember[]
+  questions  Question[]
+  answer     QuestionAnswer[]
 }
 
 model UserRating {
   id     String @id @default(uuid())
   userId String @unique
-  user   User   @relation(references: [id], fields: [userId])
+
+  user User @relation(references: [id], fields: [userId])
 }
 
 model GameMember {
@@ -38,4 +44,57 @@ model GameMember {
 
   gameId String
   game   Game   @relation(references: [id], fields: [gameId])
+}
+
+enum FriendStatus {
+  accepted
+  rejected
+  pending
+}
+
+model Friends {
+  id String @id @default(uuid())
+
+  status FriendStatus @default(pending)
+
+  recieverId String
+  reciever   User   @relation("reciever", references: [id], fields: [recieverId])
+
+  senderId String
+  sender   User   @relation("sender", references: [id], fields: [senderId])
+}
+
+enum QuestionSign {
+  ADD
+  MINUS
+  MULTIPLY
+  DIVIDE
+}
+
+model Question {
+  id String @id @default(uuid())
+
+  gameID String
+  game   Game   @relation(references: [id], fields: [gameID])
+
+  systemAnswer Int
+  operation1   Int
+  operation2   Int
+  sign         QuestionSign
+
+  answers QuestionAnswer[]
+}
+
+model QuestionAnswer {
+  id String @id @default(uuid())
+
+  questionId String
+  question   Question @relation(references: [id], fields: [questionId])
+
+  answer Int
+  gameId String
+  game   Game   @relation(references: [id], fields: [gameId])
+
+  userId String
+  user   User   @relation(references: [id], fields: [userId])
 }
