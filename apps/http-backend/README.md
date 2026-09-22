@@ -12,4 +12,12 @@ To run:
 bun run index.ts
 ```
 
-This project was created using `bun init` in bun v1.4.2. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+### http-backend API Design
+```text
+- /api/v1/auth/register
+- /api/v1/auth/login
+- /api/v1/auth/me
+    - ratings
+    - games
+- /api/v1/game/:gameId (get)
+```
