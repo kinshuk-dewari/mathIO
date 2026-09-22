@@ -15,14 +15,20 @@ const allQuestions: Map<string, Question[]> = new Map();
 type ExtendedWs = WebSocket & { userId: string };
 
 wss.on("connection", async (ws: ExtendedWs, req) => {
+
   const token = req.url?.split("?token=")[1];
 
+  // console.log("token",token);
+  
   if (!token) {
     ws.close();
     return;
   }
 
+  // console.log("token",token);
+
   let decoded;
+
   try {
     decoded = verify(token, JWT_SECRET) as JwtPayload;
   } catch (err) {
@@ -54,7 +60,7 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
       JSON.stringify({
         type: "ONLINE_USERS",
         payload: {
-          users: Array.from(onlineUsers),
+          user: Array.from(onlineUsers),
         },
       }),
     );

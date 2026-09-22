@@ -5,7 +5,7 @@ const SIGN_SYMBOL: Record<WsQuestion["sign"], string> = {
   PLUS: "+",
   MINUS: "−",
   DIVIDE: "÷",
-  MULTIPLICATION: "×",
+  MULTIPLY: "×",
 };
 
 export function QuestionCard({ question, shake }: { question: WsQuestion; shake: boolean }) {

@@ -14,8 +14,7 @@ import { GameRequestBanner } from "@/components/GameRequestBanner";
 export default function DashboardPage() {
   const router = useRouter();
   const { user, status: authStatus } = useAuth();
-  const { onlineUsers, pendingGameRequest, isSearching, playGame, dismissGameRequest } =
-    useGameSocket();
+  const { onlineUsers, pendingGameRequest, isSearching, playGame, dismissGameRequest } = useGameSocket();
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {

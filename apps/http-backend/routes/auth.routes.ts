@@ -9,6 +9,7 @@ import {
 import { compare, hash } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { JWT_SECRET } from "../utils";
+import { auth } from "../auth.middleware";
 
 export const authRouter = Router();
 
@@ -93,7 +94,7 @@ authRouter.post("/login", async (req, res) => {
 });
 
 // profile route
-authRouter.post("/me", async (req, res) => {
+authRouter.post("/me",auth, async (req, res) => {
   try {
     const userId = req.userId;
 
