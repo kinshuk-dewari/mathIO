@@ -42,6 +42,8 @@ model UserRating {
   id     String @id @default(uuid())
   userId String @unique
 
+  rating Int
+
   user User @relation(references: [id], fields: [userId])
 }
 

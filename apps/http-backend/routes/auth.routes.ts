@@ -35,7 +35,7 @@ authRouter.post("/register", async (req, res) => {
       return;
     }
 
-    const username = email.split("@")[0];
+    const username = email.split("@")[0]!;
     const hashedPassword = await hash(password, 10);
 
     await prisma.user.create({
@@ -84,7 +84,9 @@ authRouter.post("/login", async (req, res) => {
 
     const token = sign({ userId: existingUser.id }, JWT_SECRET);
 
-    return res.status(201).json({ message: "Login successful" });
+    return res
+      .status(201)
+      .json({ message: "Login successful", data: { token } });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }

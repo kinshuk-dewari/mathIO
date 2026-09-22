@@ -20,4 +20,6 @@ bun run index.ts
     - ratings
     - games
 - /api/v1/game/:gameId (get)
+- /api/v1/friends/request/send
+- /api/v1/friends/request/recieve
 ```

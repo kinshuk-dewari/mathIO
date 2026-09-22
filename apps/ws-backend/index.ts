@@ -1,23 +1,14 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { verify, type JwtPayload } from "jsonwebtoken";
 import { prisma } from "@repo/db/client";
+import type { Game, Question, User } from "./types";
 
 const wss = new WebSocketServer({ port: 8080 });
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
 
-export type User = {
-  id: string;
-  name: string;
-  ws: WebSocket;
-};
-
-export type Game = {
-  id: string;
-  status: "SEARCHING_FOR_PLAYERS" | "OVER" | "RUNNING";
-};
-
 const onlineUsers: Map<string, User> = new Map();
 type ExtendedWs = WebSocket & { userId: string };
+
 const games: Map<string, Game> = new Map();
 
 wss.on("connection", async (ws: ExtendedWs, req) => {
@@ -69,28 +60,32 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
   ws.on("message", (event) => {
     const parsedData = JSON.parse(event.toString());
 
-    if (parsedData.type === "PLAY_GAME") {
+    if (parsedData.type == "PLAY_GAME") {
       const {} = parsedData.payload;
 
       let runningGame: Game | null = null;
 
       for (const [gameId, game] of games.entries()) {
-        if (game.status === "SEARCHING_FOR_PLAYERS") {
+        if (game.status === "SEARCHING_FOR_PLAYER") {
           runningGame = game;
           break;
         }
       }
 
       if (!runningGame) {
-        games.set({
+        const gameId = crypto.randomUUID();
+
+        games.set(gameId, {
+          id: gameId,
           members: [
             {
-              id: ws.userId,
+              id: user.id,
               name: user.username,
+              ws
             },
           ],
-          adminId: ws.userId,
-          status: "SEARCHING_FOR_PLAYERS",
+          adminId: user.id,
+          status: "SEARCHING_FOR_PLAYER",
           questions: [],
           answers: [],
         });
@@ -106,6 +101,14 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
         });
         return;
       }
+
+      const currentGameFetched = games.get(runningGame.id)!;
+
+      currentGameFetched.members.push({
+        id:user.id,
+        name: user.username,
+        ws
+      });
     }
   });
 });
