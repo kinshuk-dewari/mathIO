@@ -1,17 +1,20 @@
-## MATH IO
+# MATH IO
 a multiplayer web based game that checks your maths ability, play games win them score higher, climb up the rank mode
 
-### To Do
+
+## To Do
 <li>(first) game end logic and UI</li>
 <li> (second) only login is being added to the database, rest is empty, game logs, questions[ ], answers[ ] etc are empty. ()</li>
 <li>friend logic</li>
 <li>X player is searching for opponent toast</li>
 <li>add more games</li>
 <li>make is point based faster adn accurate answers gives more point</li>
+<hr>
 
 ### Architecture Diagram
 ![alt text](image.png)
 
+<hr>
 
 ### Database Design
 ```mermaid
