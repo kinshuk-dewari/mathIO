@@ -1,7 +1,7 @@
 import type { Question, questionSign } from "./types";
 
 export const generateQuestions = (): Question[] => {
-  const sign = ["MINUS", "PLUS", "DIVIDE", "MULTIPLICATION"];
+  const sign = ["MINUS", "PLUS", "DIVIDE", "MULTIPLY"];
   const questions: Question[] = [];
 
   for (let i = 0; i <= 5; i++) {
@@ -18,7 +18,7 @@ export const generateQuestions = (): Question[] => {
       answer = randonOperation1 / randonOperation2;
     } else if (randomSign == "MINUS") {
       answer = randonOperation1 - randonOperation2;
-    } else if (randomSign == "MULTIPLICATION") {
+    } else if (randomSign == "MULTIPLY") {
       answer = randonOperation1 * randonOperation2;
     } else {
       answer = randonOperation1 + randonOperation2;
