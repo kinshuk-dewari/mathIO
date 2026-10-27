@@ -45,6 +45,24 @@ function broadcastOnlineUsers() {
   );
 }
 
+// tell every online user who is free (not searching / not playing) that someone wants a match
+function broadcastGameRequest(game: Game, from: User) {
+  for (const u of onlineUsers.values()) {
+    if (u.id === from.id || findGameOfUser(u.id)) continue;
+    send(u.ws, {
+      type: "GAME_REQUEST",
+      payload: { gameId: game.id, from: { id: from.id, name: from.name } },
+    });
+  }
+}
+
+// remove the banner everywhere (searcher cancelled / left, or somebody accepted)
+function broadcastGameRequestCancelled(gameId: string) {
+  for (const u of onlineUsers.values()) {
+    send(u.ws, { type: "GAME_REQUEST_CANCELLED", payload: { gameId } });
+  }
+}
+
 // never leak the correct answer to the client
 function toPublicQuestion(q: Question) {
   const { answer, ...rest } = q;
@@ -164,17 +182,23 @@ function endGame(game: Game) {
     });
   });
 
-  game.members.forEach((m) =>
+  // each player only receives THEIR OWN result (plus win / loss / draw)
+  game.members.forEach((m) => {
+    const mine = results.find((r) => r.userId === m.id);
+    if (!mine) return;
+
+    const outcome = winner === null ? "DRAW" : winner === m.id ? "WIN" : "LOSS";
+
     send(m.ws, {
       type: "GAME_OVER",
       payload: {
         gameId: game.id,
-        winner,
-        ratingChange: winner ? { userId: winner, change: WIN_RATING_BONUS } : null,
-        results,
+        outcome,
+        ratingChange: outcome === "WIN" ? WIN_RATING_BONUS : 0,
+        result: mine,
       },
-    }),
-  );
+    });
+  });
 
   finalizeGame(game, winner).catch((err) =>
     console.error("Failed to finalize game", err),
@@ -188,30 +212,33 @@ async function createGameInDb(game: Game) {
   const startedAt = new Date();
   const timelimit = Math.round((game.questions.length * QUESTION_TIME_MS) / 1000);
 
-  await prisma.$transaction([
-    prisma.game.create({
-      data: {
-        id: game.id,
-        timelimit,
-        startedAt,
-        // placeholder (expected end); overwritten with the real end when the game finishes
-        endAt: new Date(startedAt.getTime() + timelimit * 1000),
-      },
-    }),
-    prisma.gameMember.createMany({
-      data: game.members.map((m) => ({ userId: m.id, gameId: game.id })),
-    }),
-    prisma.question.createMany({
-      data: game.questions.map((q) => ({
-        id: q.id,
-        gameID: game.id,
-        systemAnswer: q.answer,
-        operation1: q.operation1,
-        operation2: q.operation2,
-        sign: q.sign,
-      })),
-    }),
-  ]);
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.game.create({
+        data: {
+          id: game.id,
+          timelimit,
+          startedAt,
+          // placeholder (expected end); overwritten with the real end when the game finishes
+          endAt: new Date(startedAt.getTime() + timelimit * 1000),
+        },
+      });
+      await tx.gameMember.createMany({
+        data: game.members.map((m) => ({ userId: m.id, gameId: game.id })),
+      });
+      await tx.question.createMany({
+        data: game.questions.map((q) => ({
+          id: q.id,
+          gameID: game.id,
+          systemAnswer: q.answer,
+          operation1: q.operation1,
+          operation2: q.operation2,
+          sign: q.sign,
+        })),
+      });
+    },
+    { maxWait: 10_000, timeout: 20_000 },
+  );
 }
 
 // called when both players are done: save answers, real end time, winner's rating
@@ -221,31 +248,89 @@ async function finalizeGame(game: Game, winnerId: string | null) {
     Math.max(...players.map((p) => p.finishedAt ?? Date.now())),
   );
 
-  await prisma.$transaction([
-    prisma.questionAnswer.createMany({
-      data: players.flatMap((p) =>
-        p.answers.map((a) => ({
-          questionId: a.questionId,
-          answer: a.answer,
-          gameId: game.id,
-          userId: p.userId,
-        })),
-      ),
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.questionAnswer.createMany({
+        data: players.flatMap((p) =>
+          p.answers.map((a) => ({
+            questionId: a.questionId,
+            answer: a.answer,
+            gameId: game.id,
+            userId: p.userId,
+          })),
+        ),
+      });
+      await tx.game.update({ where: { id: game.id }, data: { endAt } });
+      if (winnerId) {
+        await tx.userRating.upsert({
+          where: { userId: winnerId },
+          update: { rating: { increment: WIN_RATING_BONUS } },
+          create: {
+            userId: winnerId,
+            rating: DEFAULT_RATING + WIN_RATING_BONUS,
+          },
+        });
+      }
+    },
+    { maxWait: 10_000, timeout: 20_000 },
+  );
+}
+
+// a second player joins a waiting game (via PLAY_GAME quick-match or by accepting a banner)
+async function startGame(game: Game, joiner: User) {
+  // everything up to the first await runs synchronously, so if two people
+  // accept at the same moment, only the first one gets in
+  game.members.push(joiner);
+  game.questions = generateQuestions();
+  game.status = "RUNNING";
+
+  // the request is taken, hide the banner for everybody
+  broadcastGameRequestCancelled(game.id);
+
+  // save game, members and questions before anyone sees a question
+  try {
+    await createGameInDb(game);
+  } catch (err) {
+    console.error("Failed to create game in DB", err);
+    game.members.forEach((m) =>
+      send(m.ws, { type: "ERROR", payload: { message: "Could not start game" } }),
+    );
+    games.delete(game.id);
+    return;
+  }
+
+  // someone may have disconnected while we were saving
+  if (!games.has(game.id)) return;
+
+  const now = Date.now();
+  game.members.forEach((m) => {
+    game.players.set(m.id, {
+      userId: m.id,
+      name: m.name,
+      ws: m.ws,
+      currentIndex: 0,
+      questionStartedAt: now,
+      startedAt: now,
+      finishedAt: null,
+      points: 0,
+      correctCount: 0,
+      wrongAnswers: [],
+      answers: [],
+    });
+  });
+
+  game.members.forEach((m) =>
+    send(m.ws, {
+      type: "GAME_STARTED",
+      payload: {
+        gameId: game.id,
+        totalQuestions: game.questions.length,
+        players: game.members.map((x) => ({ id: x.id, name: x.name })),
+      },
     }),
-    prisma.game.update({ where: { id: game.id }, data: { endAt } }),
-    ...(winnerId
-      ? [
-          prisma.userRating.upsert({
-            where: { userId: winnerId },
-            update: { rating: { increment: WIN_RATING_BONUS } },
-            create: {
-              userId: winnerId,
-              rating: DEFAULT_RATING + WIN_RATING_BONUS,
-            },
-          }),
-        ]
-      : []),
-  ]);
+  );
+
+  game.players.forEach((p) => sendQuestion(game, p));
 }
 
 // ---------- server ----------
@@ -281,6 +366,19 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
   onlineUsers.set(user.id, { id: user.id, name: user.username, ws });
   broadcastOnlineUsers();
 
+  // if somebody is already searching, show the banner to the user who just connected
+  if (!findGameOfUser(user.id)) {
+    for (const g of games.values()) {
+      if (g.status !== "SEARCHING_FOR_PLAYER" || g.adminId === user.id) continue;
+      const searcher = g.members[0];
+      if (!searcher) continue;
+      send(ws, {
+        type: "GAME_REQUEST",
+        payload: { gameId: g.id, from: { id: searcher.id, name: searcher.name } },
+      });
+    }
+  }
+
   ws.on("message", async (event) => {
     let parsedData: any;
     try {
@@ -298,80 +396,54 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
 
       // look for a game waiting for a player (not our own)
       let waitingGame: Game | null = null;
-      for (const game of games.values()) {
-        if (game.status === "SEARCHING_FOR_PLAYER" && game.adminId !== user.id) {
-          waitingGame = game;
+      for (const g of games.values()) {
+        if (g.status === "SEARCHING_FOR_PLAYER" && g.adminId !== user.id) {
+          waitingGame = g;
           break;
         }
       }
 
-      // nobody waiting -> create one and wait
-      if (!waitingGame) {
-        const gameId = randomUUID();
+      // somebody is already waiting -> join and start
+      if (waitingGame) {
+        await startGame(waitingGame, self);
+        return;
+      }
 
-        games.set(gameId, {
-          id: gameId,
-          members: [self],
-          adminId: user.id,
-          status: "SEARCHING_FOR_PLAYER",
-          questions: [],
-          players: new Map(),
-        });
+      // nobody waiting -> create one, wait, and let everyone know
+      const newGame: Game = {
+        id: randomUUID(),
+        members: [self],
+        adminId: user.id,
+        status: "SEARCHING_FOR_PLAYER",
+        questions: [],
+        players: new Map(),
+      };
+      games.set(newGame.id, newGame);
+      broadcastGameRequest(newGame, self);
+      return;
+    }
 
-        wss.clients.forEach((wsAll) => {
-          if (wsAll === ws) return;
-          send(wsAll, { type: "GAME_REQUEST" });
+    // ---------------- JOIN_GAME (accept a banner) ----------------
+    if (parsedData.type === "JOIN_GAME") {
+      const { gameId } = parsedData.payload ?? {};
+
+      // already searching / playing? ignore
+      if (findGameOfUser(user.id)) return;
+
+      const game = games.get(gameId);
+      if (
+        !game ||
+        game.status !== "SEARCHING_FOR_PLAYER" ||
+        game.adminId === user.id
+      ) {
+        send(ws, {
+          type: "ERROR",
+          payload: { message: "That match is no longer available" },
         });
         return;
       }
 
-      // someone is waiting -> join and start
-      const game = waitingGame;
-      game.members.push(self);
-      game.questions = generateQuestions();
-      game.status = "RUNNING";
-
-      // save game, members and questions before anyone sees a question
-      try {
-        await createGameInDb(game);
-      } catch (err) {
-        console.error("Failed to create game in DB", err);
-        game.members.forEach((m) =>
-          send(m.ws, { type: "ERROR", payload: { message: "Could not start game" } }),
-        );
-        games.delete(game.id);
-        return;
-      }
-
-      const now = Date.now();
-      game.members.forEach((m) => {
-        game.players.set(m.id, {
-          userId: m.id,
-          name: m.name,
-          ws: m.ws,
-          currentIndex: 0,
-          questionStartedAt: now,
-          startedAt: now,
-          finishedAt: null,
-          points: 0,
-          correctCount: 0,
-          wrongAnswers: [],
-          answers: [],
-        });
-      });
-
-      game.members.forEach((m) =>
-        send(m.ws, {
-          type: "GAME_STARTED",
-          payload: {
-            gameId: game.id,
-            totalQuestions: game.questions.length,
-            players: game.members.map((x) => ({ id: x.id, name: x.name })),
-          },
-        }),
-      );
-
-      game.players.forEach((p) => sendQuestion(game, p));
+      await startGame(game, { id: user.id, name: user.username, ws });
       return;
     }
 
@@ -446,8 +518,10 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
     const game = findGameOfUser(user.id);
     if (!game) return;
 
+    // searcher left before anyone joined -> remove the banner for everybody
     if (game.status === "SEARCHING_FOR_PLAYER") {
       games.delete(game.id);
+      broadcastGameRequestCancelled(game.id);
       return;
     }
 

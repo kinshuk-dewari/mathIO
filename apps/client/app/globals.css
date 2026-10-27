@@ -61,3 +61,16 @@ body {
     box-shadow: 0 0 40px 4px var(--accent-glow);
   }
 }
+
+@layer utilities {
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .no-spinner {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}

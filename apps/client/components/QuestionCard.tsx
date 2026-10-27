@@ -2,10 +2,10 @@ import type { WsQuestion } from "@/types/ws";
 import { cn } from "@/lib/cn";
 
 const SIGN_SYMBOL: Record<WsQuestion["sign"], string> = {
-  PLUS: "+",
+  ADD: "+",
   MINUS: "−",
   DIVIDE: "÷",
-  MULTIPLY: "×",
+  MULTIPLY: "x",
 };
 
 export function QuestionCard({ question, shake }: { question: WsQuestion; shake: boolean }) {

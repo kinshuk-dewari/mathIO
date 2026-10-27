@@ -31,7 +31,7 @@ export const generateQuestions = (count = 10): Question[] => {
         operation2 = randInt(0, 9);
         answer = operation1 * operation2;
         break;
-      default: // ADD
+      case "ADD": // ADD
         operation1 = randInt(0, 20);
         operation2 = randInt(0, 9);
         answer = operation1 + operation2;
