@@ -102,7 +102,9 @@ export function GameSocketProvider({ children }: { children: React.ReactNode }) 
 
       // someone is searching for a match -> show the banner
       if (message.type === "GAME_REQUEST") {
-        if (message.payload?.gameId) setPendingGameRequest(message.payload);
+        if ("from" in message.payload && message.payload.gameId) {
+          setPendingGameRequest(message.payload);
+        }
         return;
       }
 

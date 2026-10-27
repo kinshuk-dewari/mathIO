@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { apiLogin, apiMe, apiRegister } from "@/lib/api";
 import type { AuthUser } from "@/types/auth";
 
-const TOKEN_KEY = "matiks_token";
+const TOKEN_KEY = "MATHIO_token";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 

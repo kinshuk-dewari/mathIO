@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useGameSocket } from "@/context/GameSocketContext";
@@ -8,7 +14,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { QuestionCard } from "@/components/QuestionCard";
+import { QuestionCard, type AnswerFeedback } from "@/components/QuestionCard";
 import { GameResultCard } from "@/components/GameResultCard";
 
 export default function GamePage() {
@@ -16,12 +22,18 @@ export default function GamePage() {
   const router = useRouter();
   const { status: authStatus, user } = useAuth();
   const {
-    currentQuestion, submitAnswer, phase, gameResult,
-    lastAnswer, answeredCount, totalPoints, opponentFinished,
+    currentQuestion,
+    submitAnswer,
+    phase,
+    gameResult,
+    lastAnswer,
+    answeredCount,
+    totalPoints,
+    opponentFinished,
   } = useGameSocket();
 
   const [answer, setAnswer] = useState("");
-  const [shake, setShake] = useState(false);
+  const [feedback, setFeedback] = useState<AnswerFeedback>(null);
   const [startedAt] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
   const lastQuestionId = useRef<string | null>(null);
@@ -41,19 +53,25 @@ export default function GamePage() {
 
   // clear input on new question
   useEffect(() => {
-    if (currentQuestion && currentQuestion.question.id !== lastQuestionId.current) {
+    if (
+      currentQuestion &&
+      currentQuestion.question.id !== lastQuestionId.current
+    ) {
       lastQuestionId.current = currentQuestion.question.id;
       setAnswer("");
     }
   }, [currentQuestion]);
 
   // shake only when the SERVER says it was wrong
+  // driven by the server's verdict; clears itself after the animation ends
   useEffect(() => {
-    if (lastAnswer && !lastAnswer.correct) {
-      setShake(true);
-      const t = setTimeout(() => setShake(false), 300);
-      return () => clearTimeout(t);
-    }
+    if (!lastAnswer) return;
+    setFeedback({
+      type: lastAnswer.correct ? "correct" : "wrong",
+      id: lastAnswer.questionId,
+    });
+    const t = setTimeout(() => setFeedback(null), 400);
+    return () => clearTimeout(t);
   }, [lastAnswer]);
 
   const handleSubmit = useCallback(
@@ -77,14 +95,20 @@ export default function GamePage() {
         ) : phase === "opponent_left" ? (
           <Card className="flex w-full flex-col items-center gap-4 p-12">
             <p className="text-lg">Your opponent left the game.</p>
-            <Button onClick={() => router.push("/dashboard")}>Back to lobby</Button>
+            <Button onClick={() => router.push("/dashboard")}>
+              Back to lobby
+            </Button>
           </Card>
         ) : (
           <>
             <div className="flex w-full items-center justify-between text-sm text-muted">
               <span>
-                Solved: <span className="font-mono text-foreground">{answeredCount}</span>
-                {" · "}Points: <span className="font-mono text-foreground">{totalPoints}</span>
+                Solved:{" "}
+                <span className="font-mono text-foreground">
+                  {answeredCount}
+                </span>
+                {" · "}Points:{" "}
+                <span className="font-mono text-foreground">{totalPoints}</span>
               </span>
               <span className="font-mono text-lg text-accent">
                 {minutes}:{seconds}
@@ -101,8 +125,14 @@ export default function GamePage() {
                 </p>
               ) : currentQuestion ? (
                 <>
-                  <QuestionCard question={currentQuestion.question} shake={shake} />
-                  <form onSubmit={handleSubmit} className="flex w-full max-w-xs gap-2">
+                  <QuestionCard
+                    question={currentQuestion.question}
+                    feedback={feedback}
+                  />
+                  <form
+                    onSubmit={handleSubmit}
+                    className="flex w-full max-w-xs gap-2"
+                  >
                     <Input
                       autoFocus
                       type="number"

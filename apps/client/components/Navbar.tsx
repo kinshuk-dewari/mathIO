@@ -15,7 +15,7 @@ export function Navbar() {
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <Link href="/dashboard" className="font-mono text-lg font-bold tracking-tight text-accent">
-          MATIKS
+          MATHIO
         </Link>
 
         {user && (

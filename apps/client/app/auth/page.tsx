@@ -51,17 +51,17 @@ function AuthForm() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <Card className="w-full max-w-sm p-8">
+      <Card className="w-full max-w-sm p-8 bg-red-500">
         <Link href="/" className="font-mono text-sm font-bold text-accent">
-          MATIKS
+          MATHIO
         </Link>
 
-        <div className="mt-6 flex rounded-xl border border-border p-1">
+        <div className="mt-6 flex rounded-xl p-1">
           <button
             type="button"
             onClick={() => setMode("login")}
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-              mode === "login" ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              mode === "login" ? "bg-transparent text-accent border border-accent" : "text-muted hover:text-foreground"
             }`}
           >
             Log In
@@ -70,7 +70,7 @@ function AuthForm() {
             type="button"
             onClick={() => setMode("register")}
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-              mode === "register" ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              mode === "register" ? "bg-transparent text-accent border border-accent" : "text-muted hover:text-foreground"
             }`}
           >
             Sign Up

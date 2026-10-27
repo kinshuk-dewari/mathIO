@@ -12,17 +12,17 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-accent text-white shadow-[0_0_24px_-4px_var(--accent-glow)] hover:brightness-110 active:brightness-95",
+    "bg-accent text-background shadow-[0_0_24px_-4px_var(--accent-glow)] hover:brightness-110 active:brightness-95",
   secondary:
-    "bg-transparent border border-border text-foreground hover:border-accent hover:text-accent",
+    "bg-transparent border border-accent text-accent hover:border-accent/10 hover:text-accent",
   ghost: "bg-transparent text-muted hover:text-foreground hover:bg-white/5",
-  danger: "bg-danger text-white hover:brightness-110",
+  danger: "bg-danger text-background hover:brightness-110",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "text-sm px-3 py-1.5 rounded-lg",
   md: "text-sm px-4 py-2.5 rounded-xl",
-  lg: "text-base px-6 py-3.5 rounded-xl",
+  lg: "text-base px-6 py-3.5 rounded-full",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center gap-2 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed",
           variantClasses[variant],
           sizeClasses[size],
           className,

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Matiks — Live Math Duels",
+  title: "MATHIO - Live Math Duels",
   description: "Challenge other players to real-time 1v1 math duels.",
 };
 

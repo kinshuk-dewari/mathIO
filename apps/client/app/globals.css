@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050508;
-  --surface: #0d0d14;
+  --background: #171717;
+  --surface: #252525;
   --foreground: #f1f2f6;
   --muted: #8b8fa3;
   --border: #1f2130;
-  --accent: #7c5cff;
-  --accent-secondary: #22d3ee;
-  --accent-glow: rgba(124, 92, 255, 0.45);
+  --accent: #B1FA63;
+  --accent-secondary: #B1FA63;
+  --accent-glow: #98f987;
   --success: #22c55e;
   --danger: #ef4444;
 }
@@ -75,24 +75,10 @@ body {
   }
 }
 
-
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  20%, 60% {
-    transform: translateX(-8px);
-  }
-  40%, 80% {
-    transform: translateX(8px);
-  }
-}
-
-
 @keyframes wrong-answer {
   0%, 100% {
     transform: translateX(0);
-    color: #ef4444;
+    color: #fff;
   }
   20%, 60% {
     transform: translateX(-5px);
@@ -107,10 +93,10 @@ body {
 @keyframes correct-answer {
   0%, 100% {
     transform: scale(1);
-    color: #22c55e;
+    color: #fff;
   }
-  45% {
-    transform: scale(1.06);
+  40% {
+    transform: scale(1.03);
     color: #22c55e;
   }
 }

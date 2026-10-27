@@ -5,22 +5,26 @@ const SIGN_SYMBOL: Record<WsQuestion["sign"], string> = {
   ADD: "+",
   MINUS: "−",
   DIVIDE: "÷",
-  MULTIPLY: "x",
+  MULTIPLY: "*",
 };
+
+// id = questionId of the answer, so every answer replays the animation
+export type AnswerFeedback = { type: "correct" | "wrong"; id: string } | null;
 
 export function QuestionCard({
   question,
-  shake,
+  feedback,
 }: {
   question: WsQuestion;
-  shake: boolean;
+  feedback: AnswerFeedback;
 }) {
   return (
     <div
+      key={feedback?.id ?? "idle"}
       className={cn(
         "flex items-center justify-center gap-4 font-mono text-white text-5xl font-bold tracking-tight sm:text-6xl",
-        shake
-          &&"animate-[shake_0.3s_ease-in-out,flash-red_0.4s_ease-out]"
+        feedback?.type === "wrong" && "animate-[wrong-answer_400ms_ease-out]",
+        feedback?.type === "correct" && "animate-[correct-answer_400ms_ease-out]",
       )}
     >
       <span>{question.operation1}</span>
