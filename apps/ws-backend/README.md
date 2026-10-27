@@ -12,6 +12,9 @@ To run:
 bun run index.ts
 ```
 
+The websocket backend requires `JWT_SECRET` to be set to the same value used by
+the HTTP backend. It will fail at startup if the variable is missing.
+
 ### WS backend endpoints
 ```text
 - Join
