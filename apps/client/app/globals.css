@@ -74,3 +74,44 @@ body {
     appearance: textfield;
   }
 }
+
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-8px);
+  }
+  40%, 80% {
+    transform: translateX(8px);
+  }
+}
+
+
+@keyframes wrong-answer {
+  0%, 100% {
+    transform: translateX(0);
+    color: #ef4444;
+  }
+  20%, 60% {
+    transform: translateX(-5px);
+    color: #ef4444;
+  }
+  40%, 80% {
+    transform: translateX(5px);
+    color: #ef4444;
+  }
+}
+
+@keyframes correct-answer {
+  0%, 100% {
+    transform: scale(1);
+    color: #22c55e;
+  }
+  45% {
+    transform: scale(1.06);
+    color: #22c55e;
+  }
+}
+

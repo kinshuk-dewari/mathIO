@@ -8,12 +8,19 @@ const SIGN_SYMBOL: Record<WsQuestion["sign"], string> = {
   MULTIPLY: "x",
 };
 
-export function QuestionCard({ question, shake }: { question: WsQuestion; shake: boolean }) {
+export function QuestionCard({
+  question,
+  shake,
+}: {
+  question: WsQuestion;
+  shake: boolean;
+}) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-4 font-mono text-5xl font-bold tracking-tight sm:text-6xl",
-        shake && "animate-[shake_0.3s_ease-in-out]",
+        "flex items-center justify-center gap-4 font-mono text-white text-5xl font-bold tracking-tight sm:text-6xl",
+        shake
+          &&"animate-[shake_0.3s_ease-in-out,flash-red_0.4s_ease-out]"
       )}
     >
       <span>{question.operation1}</span>

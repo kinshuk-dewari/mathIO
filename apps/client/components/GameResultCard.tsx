@@ -25,7 +25,7 @@ export function GameResultCard({ result }: { result: GameOverPayload }) {
 
   const backToLobby = () => {
     resetGame();
-    router.push("/"); // change to your lobby route
+    router.push("/dashboard"); // change to your lobby route
   };
 
   return (
