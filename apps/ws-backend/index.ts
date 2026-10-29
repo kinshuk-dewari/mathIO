@@ -24,6 +24,7 @@ const WRONG_PENALTY = 25; // lost for each wrong answer
 const WIN_RATING_BONUS = 30; // rating gained by the winner
 const DEFAULT_RATING = 1000; // starting rating if the winner has no rating row yet
 
+// ---------- global state ----------
 const onlineUsers: Map<string, User> = new Map();
 const games: Map<string, Game> = new Map();
 
@@ -35,7 +36,7 @@ function send(ws: WebSocket, data: unknown) {
 }
 
 function broadcastOnlineUsers() {
-  // same shape as your original code ([id, { id, name }] pairs), minus the ws object
+  //  ([id, { id, name }] pairs)
   const users = Array.from(onlineUsers.entries()).map(([id, u]) => [
     id,
     { id: u.id, name: u.name },
@@ -85,7 +86,7 @@ function findGameOfUser(userId: string) {
   return null;
 }
 
-/**
+/*
  * Faster correct answer => more points.
  * Wrong answer => penalty (total never goes below 0).
  */
@@ -335,9 +336,8 @@ async function startGame(game: Game, joiner: User) {
 
 // ---------- server ----------
 wss.on("connection", async (ws: ExtendedWs, req) => {
-  const token = new URL(req.url ?? "/", "http://localhost").searchParams.get(
-    "token",
-  );
+  // authenticating the user via JWT token in the query string (e.g. ws://localhost:8080/?token=...)
+  const token = new URL(req.url ?? "/", "http://localhost").searchParams.get("token");
 
   if (!token) {
     ws.close();
@@ -345,6 +345,7 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
   }
 
   let decoded: JwtPayload;
+
   try {
     decoded = verify(token, JWT_SECRET) as JwtPayload;
   } catch (error) {
@@ -363,6 +364,8 @@ wss.on("connection", async (ws: ExtendedWs, req) => {
   }
 
   ws.userId = user.id;
+
+  // broadcasting user's online status to everyone else (including themselves)
   onlineUsers.set(user.id, { id: user.id, name: user.username, ws });
   broadcastOnlineUsers();
 
